@@ -22,6 +22,16 @@ public class App extends Application {
 
     @Override public void onCreate() {
         super.onCreate();
+        // Si la app se cierra por un error, guardamos el motivo para enseñarlo en el siguiente arranque
+        final Thread.UncaughtExceptionHandler prevHandler = Thread.getDefaultUncaughtExceptionHandler();
+        Thread.setDefaultUncaughtExceptionHandler((t, e) -> {
+            try {
+                java.io.StringWriter sw = new java.io.StringWriter();
+                e.printStackTrace(new java.io.PrintWriter(sw));
+                getSharedPreferences("crash", MODE_PRIVATE).edit().putString("trace", sw.toString()).commit();
+            } catch (Throwable ignored) { }
+            if (prevHandler != null) prevHandler.uncaughtException(t, e);
+        });
         app = this;
         prefs = getSharedPreferences("fmhyplay", MODE_PRIVATE);
         // The TV and Android builds each carry a "flavor" asset; anything else (old builds) guesses from the device
