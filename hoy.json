@@ -1,7 +1,7 @@
 {
   "titulo": "Hoy en casa",
   "items": [
-    { "titulo": "Ejemplo con enlace", "subtitulo": "Cambia esto en hoy.json", "url": "https://www2.rarbggo.to/" },
-    { "titulo": "DAZN F1", "image": "https://raw.githubusercontent.com/chapu21/android/main/imagenes/dazn.png" "embed": "<iframe src='https://thedaddy.pk/stream/stream-537.php' width='100%' height='100%' style='border:0;' allowfullscreen></iframe>" }
+    { "titulo": "Ejemplo con enlace", "subtitulo": "Cambia esto en hoy.json", "url": "https://www.fctv33go.motorcycles/es/football.html" },
+    { "titulo": "DAZN F1", "image": "https://raw.githubusercontent.com/chapu21/android/main/imagenes/dazn.png", "embed": "<iframe src='https://thedaddy.pk/stream/stream-537.php' width='100%' height='100%' style='border:0;' allowfullscreen></iframe>" }
   ]
 }
