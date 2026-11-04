@@ -27,7 +27,7 @@ $BT/aapt2 compile --dir res -o build/res.zip
 # Link once to generate R.java for the compiler, then once per flavor for the real packages
 mkdir -p build/flavor-tv && echo tv > build/flavor-tv/flavor
 $BT/aapt2 link -o build/r.apk -I "$JAR" --manifest AndroidManifest.xml build/res.zip -A assets -A build/flavor-tv --java build \
-  --min-sdk-version 26 --target-sdk-version 34 $VERSION
+  --min-sdk-version 26 --target-sdk-version 34 --custom-package me.champdev.weblock $VERSION
 javac -encoding UTF-8 -nowarn -Xlint:-options -source 8 -target 8 -bootclasspath "$JAR:$BT/core-lambda-stubs.jar" -classpath "$LIBS" \
   -d build/classes $(find src build/me -name '*.java')
 $BT/d8 --lib "$JAR" --min-api 26 --output build $(find build/classes -name '*.class') $(ls libs/*.jar)
@@ -36,7 +36,7 @@ mkdir -p build/lib && cp -R jni/* build/lib/
 pack() { # $1 = tv | android, $2 = manifest, $3 = output name
   mkdir -p build/flavor-$1 && echo $1 > build/flavor-$1/flavor
   $BT/aapt2 link -o build/$1.apk -I "$JAR" --manifest "$2" build/res.zip -A assets -A build/flavor-$1 \
-    --min-sdk-version 26 --target-sdk-version 34 $VERSION
+    --min-sdk-version 26 --target-sdk-version 34 --custom-package me.champdev.weblock $VERSION
   (cd build && zip -q $1.apk classes*.dex && zip -qr $1.apk lib)
   $BT/zipalign -f -p 4 build/$1.apk build/$1-aligned.apk
   $BT/apksigner sign --ks release.jks --ks-pass file:release.pass --v4-signing-enabled false --out "$3" build/$1-aligned.apk
