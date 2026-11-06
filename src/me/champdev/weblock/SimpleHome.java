@@ -1,12 +1,14 @@
 package me.champdev.weblock;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.Context;
 import android.content.Intent;
 import android.content.res.ColorStateList;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
 import android.graphics.drawable.RippleDrawable;
@@ -62,6 +64,8 @@ public class SimpleHome extends Activity {
     String heading = "Hoy";
     List<Item> items = new ArrayList<>();
     String status = "";
+    String avisoTitle = "Aviso", avisoText = "";
+    AlertDialog avisoDialog;
     boolean firstFocusDone;
     int loadId;
 
@@ -129,11 +133,82 @@ public class SimpleHome extends Activity {
         if (col != null) refresh();
     }
 
+
+    // ---------- aviso al abrir ----------
+
+    /** Muestra el aviso de hoy.json ("aviso" y, opcional, "avisoTitulo") hasta que se pulsa Entendido. Si el texto cambia, vuelve a salir. */
+    void maybeShowAviso() {
+        if (avisoText == null || avisoText.trim().isEmpty() || isFinishing() || isDestroyed()) return;
+        if (avisoDialog != null && avisoDialog.isShowing()) return;
+        final String key = Integer.toHexString((avisoTitle + "|" + avisoText).hashCode());
+        if (key.equals(App.prefs.getString("avisoVisto", ""))) return;
+
+        LinearLayout box = new LinearLayout(this);
+        box.setOrientation(LinearLayout.VERTICAL);
+        GradientDrawable boxBg = new GradientDrawable();
+        boxBg.setColor(CARD);
+        boxBg.setCornerRadius(dp(22));
+        boxBg.setStroke(dp(2), ACCENT);
+        box.setBackground(boxBg);
+        box.setPadding(u(40, 24), u(32, 24), u(40, 24), u(32, 24));
+
+        TextView t = new TextView(this);
+        t.setText(avisoTitle);
+        t.setTextColor(ACCENT);
+        t.setTextSize(sp(34, 24));
+        t.setTypeface(Typeface.DEFAULT_BOLD);
+        t.setPadding(0, 0, 0, u(16, 12));
+        box.addView(t);
+
+        TextView m = new TextView(this);
+        m.setText(avisoText);
+        m.setTextColor(TEXT);
+        m.setTextSize(sp(30, 21));
+        m.setLineSpacing(0, 1.15f);
+        ScrollView ms = new ScrollView(this);
+        ms.addView(m);
+        box.addView(ms, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+
+        TextView ok = new TextView(this);
+        ok.setText("Entendido");
+        ok.setTextColor(Color.WHITE);
+        ok.setTextSize(sp(30, 22));
+        ok.setTypeface(Typeface.DEFAULT_BOLD);
+        ok.setGravity(Gravity.CENTER);
+        ok.setPadding(u(24, 16), u(18, 14), u(24, 16), u(18, 14));
+        makeFocusable(ok);
+        GradientDrawable okBg = new GradientDrawable();
+        okBg.setColor(ACCENT);
+        okBg.setCornerRadius(dp(18));
+        ok.setBackground(okBg);
+        LinearLayout.LayoutParams okp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        okp.topMargin = u(24, 18);
+        box.addView(ok, okp);
+
+        avisoDialog = new AlertDialog.Builder(this).setView(box).setCancelable(false).create();
+        ok.setOnClickListener(v -> {
+            App.prefs.edit().putString("avisoVisto", key).apply();
+            avisoDialog.dismiss();
+        });
+        avisoDialog.show();
+        if (avisoDialog.getWindow() != null) {
+            avisoDialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+            int w = Math.min(getResources().getDisplayMetrics().widthPixels - dp(32), dp(App.tv ? 900 : 480));
+            avisoDialog.getWindow().setLayout(w, ViewGroup.LayoutParams.WRAP_CONTENT);
+        }
+        ok.post(ok::requestFocus);
+    }
+
+    @Override protected void onDestroy() {
+        if (avisoDialog != null && avisoDialog.isShowing()) avisoDialog.dismiss();
+        super.onDestroy();
+    }
+
     // ---------- datos ----------
 
     void refresh() {
         final int id = ++loadId;
-        if (LIST_URL.contains("TU_USUARIO")) return;   // aún sin configurar: se queda con la lista incluida
+        if (LIST_URL.contains("TU_USUARIO")) { maybeShowAviso(); return; }   // aún sin configurar: se queda con la lista incluida
         App.io.execute(() -> {
             String text = null;
             try {
@@ -153,6 +228,7 @@ public class SimpleHome extends Activity {
                     status = items.isEmpty() ? "No se puede cargar la lista. Comprueba internet." : "";
                 }
                 build();
+                maybeShowAviso();
             });
         });
     }
@@ -170,11 +246,14 @@ public class SimpleHome extends Activity {
     void parse(String text) {
         List<Item> list = new ArrayList<>();
         String head = "Hoy";
+        String aTitle = "Aviso", aText = "";
         try {
             if (text != null) {
                 text = text.trim();
                 JSONObject root = text.startsWith("[") ? new JSONObject().put("items", new JSONArray(text)) : new JSONObject(text);
                 head = root.optString("titulo", "Hoy");
+                aText = root.optString("aviso", "");
+                aTitle = root.optString("avisoTitulo", "Aviso");
                 JSONArray arr = root.optJSONArray("items");
                 for (int i = 0; arr != null && i < arr.length(); i++) {
                     JSONObject o = arr.optJSONObject(i);
@@ -194,6 +273,8 @@ public class SimpleHome extends Activity {
         }
         heading = head;
         items = list;
+        avisoTitle = aTitle;
+        avisoText = aText;
     }
 
     /** Acepta un enlace normal o un código iframe completo y devuelve siempre un https:// válido (o vacío). */
