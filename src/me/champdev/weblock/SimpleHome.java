@@ -66,6 +66,7 @@ public class SimpleHome extends Activity {
     String status = "";
     String avisoTitle = "Aviso", avisoText = "";
     AlertDialog avisoDialog;
+    boolean avisoMostrado;   // una vez por apertura de la app (al volver de un vídeo no se repite)
     boolean firstFocusDone;
     int loadId;
 
@@ -136,12 +137,12 @@ public class SimpleHome extends Activity {
 
     // ---------- aviso al abrir ----------
 
-    /** Muestra el aviso de hoy.json ("aviso" y, opcional, "avisoTitulo") hasta que se pulsa Entendido. Si el texto cambia, vuelve a salir. */
+    /** Muestra el aviso de hoy.json ("aviso" y, opcional, "avisoTitulo") cada vez que se abre la app, hasta que se pulsa Entendido. */
     void maybeShowAviso() {
         if (avisoText == null || avisoText.trim().isEmpty() || isFinishing() || isDestroyed()) return;
         if (avisoDialog != null && avisoDialog.isShowing()) return;
-        final String key = Integer.toHexString((avisoTitle + "|" + avisoText).hashCode());
-        if (key.equals(App.prefs.getString("avisoVisto", ""))) return;
+        if (avisoMostrado) return;
+        avisoMostrado = true;
 
         LinearLayout box = new LinearLayout(this);
         box.setOrientation(LinearLayout.VERTICAL);
@@ -186,10 +187,7 @@ public class SimpleHome extends Activity {
         box.addView(ok, okp);
 
         avisoDialog = new AlertDialog.Builder(this).setView(box).setCancelable(false).create();
-        ok.setOnClickListener(v -> {
-            App.prefs.edit().putString("avisoVisto", key).apply();
-            avisoDialog.dismiss();
-        });
+        ok.setOnClickListener(v -> avisoDialog.dismiss());
         avisoDialog.show();
         if (avisoDialog.getWindow() != null) {
             avisoDialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
