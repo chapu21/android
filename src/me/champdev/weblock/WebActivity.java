@@ -345,6 +345,12 @@ public class WebActivity extends Activity {
             if (WebViewFeature.isFeatureSupported(WebViewFeature.DOCUMENT_START_SCRIPT))
                 WebViewCompat.addDocumentStartJavaScript(web, frameHook, Collections.singleton("*"));
         } catch (IOException ignored) { }
+        // assets/clean.js: quita capas que se comen los toques y globos flotantes con una X, en cada marco
+        try {
+            String cleanHook = Sites.readAll(getAssets().open("clean.js"));
+            if (App.prefs.getBoolean("clean", true) && WebViewFeature.isFeatureSupported(WebViewFeature.DOCUMENT_START_SCRIPT))
+                WebViewCompat.addDocumentStartJavaScript(web, cleanHook, Collections.singleton("*"));
+        } catch (IOException ignored) { }
         if (App.tv) {
             try {
                 // roles.js (what things are) goes first; spatnav.js (what to do about them) uses it
@@ -377,6 +383,7 @@ public class WebActivity extends Activity {
     // A stream just appeared: look for the page's server list now, while the page is still awake
     void onSeen() {
         if (!resumed || isFinishing()) return;
+        if (!App.prefs.getBoolean("native", false)) return;   // sin reproductor nativo no hace falta buscar la lista de servidores
         servers.clear();
         qualities.clear();
         scanDone = false;
@@ -386,7 +393,7 @@ public class WebActivity extends Activity {
     // Hand the stream over, but let the server scan finish first (it needs the page awake; the player pauses it), at most 2 s
     void onStream() {
         if (!resumed || isFinishing()) return;
-        if (!App.prefs.getBoolean("native", true)) { web.evaluateJavascript(CHIP, null); return; }
+        if (!App.prefs.getBoolean("native", false)) return;   // reproductor nativo apagado por defecto: se usa el de la propia página
         if (scanDone) playNative(); else App.main.postDelayed(waitedHandoff, 2000);
     }
 
@@ -683,7 +690,7 @@ public class WebActivity extends Activity {
         items.add("Reload");
         acts.add(web::reload);
         if (sniffer.has()) { items.add("Play in native player"); acts.add(this::playNative); }
-        boolean nat = App.prefs.getBoolean("native", true);
+        boolean nat = App.prefs.getBoolean("native", false);
         items.add(nat ? "Native player: auto (switches when a video starts)" : "Native player: off");
         acts.add(() -> { App.prefs.edit().putBoolean("native", !nat).apply(); toast(nat ? "Native player off" : "Native player on"); });
         items.add(off ? "Use WARP for " + key : "Don't use WARP for " + key);
