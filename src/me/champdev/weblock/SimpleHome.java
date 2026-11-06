@@ -56,7 +56,7 @@ public class SimpleHome extends Activity {
     static final Pattern SRC = Pattern.compile("src\\s*=\\s*[\"']([^\"']+)[\"']", Pattern.CASE_INSENSITIVE);
 
     static class Item {
-        String title = "", sub = "", url = "", image = "";
+        String title = "", sub = "", url = "", image = "", section = "";
     }
 
     ScrollView page;
@@ -254,19 +254,12 @@ public class SimpleHome extends Activity {
                 head = root.optString("titulo", "Hoy");
                 aText = root.optString("aviso", "");
                 aTitle = root.optString("avisoTitulo", "Aviso");
-                JSONArray arr = root.optJSONArray("items");
-                for (int i = 0; arr != null && i < arr.length(); i++) {
-                    JSONObject o = arr.optJSONObject(i);
-                    if (o == null) continue;
-                    String url = cleanUrl(o.optString("url", ""));
-                    if (url.isEmpty()) url = cleanUrl(o.optString("embed", ""));
-                    if (url.isEmpty()) continue;
-                    Item it = new Item();
-                    it.title = o.optString("titulo", url);
-                    it.sub = o.optString("subtitulo", "");
-                    it.image = o.optString("imagen", "");
-                    it.url = url;
-                    list.add(it);
+                // Elementos sueltos (sin sección) y, después, cada sección con su título
+                addItems(list, root.optJSONArray("items"), "");
+                JSONArray secs = root.optJSONArray("secciones");
+                for (int s = 0; secs != null && s < secs.length(); s++) {
+                    JSONObject so = secs.optJSONObject(s);
+                    if (so != null) addItems(list, so.optJSONArray("items"), so.optString("titulo", ""));
                 }
             }
         } catch (Exception ignored) {
@@ -275,6 +268,23 @@ public class SimpleHome extends Activity {
         items = list;
         avisoTitle = aTitle;
         avisoText = aText;
+    }
+
+    static void addItems(List<Item> list, JSONArray arr, String section) {
+        for (int i = 0; arr != null && i < arr.length(); i++) {
+            JSONObject o = arr.optJSONObject(i);
+            if (o == null) continue;
+            String url = cleanUrl(o.optString("url", ""));
+            if (url.isEmpty()) url = cleanUrl(o.optString("embed", ""));
+            if (url.isEmpty()) continue;
+            Item it = new Item();
+            it.title = o.optString("titulo", url);
+            it.sub = o.optString("subtitulo", "");
+            it.image = o.optString("imagen", "");
+            it.url = url;
+            it.section = section;
+            list.add(it);
+        }
     }
 
     /** Acepta un enlace normal o un código iframe completo y devuelve siempre un https:// válido (o vacío). */
@@ -329,7 +339,12 @@ public class SimpleHome extends Activity {
         col.addView(title);
 
         View first = null;
+        String lastSection = "";
         for (Item it : items) {
+            if (!it.section.equals(lastSection)) {
+                lastSection = it.section;
+                if (!lastSection.isEmpty()) col.addView(sectionHeader(lastSection));
+            }
             View card = card(it);
             if (first == null) first = card;
             col.addView(card);
@@ -354,6 +369,18 @@ public class SimpleHome extends Activity {
             final View f = first;
             f.post(f::requestFocus);
         }
+    }
+
+    View sectionHeader(String text) {
+        TextView h = new TextView(this);
+        h.setText(text);
+        h.setTextColor(ACCENT);
+        h.setTextSize(sp(30, 21));
+        h.setTypeface(Typeface.DEFAULT_BOLD);
+        h.setAllCaps(true);
+        h.setLetterSpacing(0.06f);
+        h.setPadding(u(8, 4), u(28, 20), 0, u(12, 8));
+        return h;
     }
 
     LinearLayout.LayoutParams cardParams() {
