@@ -29,7 +29,6 @@
         },
         {
           "titulo": "DAZN F1",
-          "imagen": "https://raw.githubusercontent.com/chapu21/android/main/imagenes/dazn.png",
           "embed": "<iframe src='https://thedaddy.pk/stream/stream-537.php' width='100%' height='100%' style='border:0;' allowfullscreen></iframe>"
         },
         {
